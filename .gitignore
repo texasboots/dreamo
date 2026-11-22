@@ -1,0 +1,5 @@
+# Only DREAMO lives in this repo. The Alamo game in this folder is kept out.
+alamo/
+PROGRESS.md
+.claude/
+.DS_Store

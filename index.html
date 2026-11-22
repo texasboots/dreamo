@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DREAMO — design your dream house</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏡</text></svg>">
+<link rel="stylesheet" href="css/dreamo.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
+</head>
+<body>
+<main id="home">
+  <header class="hero">
+    <h1 class="logo" aria-label="DREAMO"><span>D</span><span>R</span><span>E</span><span>A</span><span>M</span><span>O</span></h1>
+    <p>Design your dream house. Build it, paint it, fill it, then walk inside.</p>
+  </header>
+  <div class="shelfbar">
+    <h2 class="shelf">My Houses</h2>
+    <button id="openFile" class="btn">📂 Open house file</button>
+    <button id="backupAll" class="btn" hidden>💾 Save all to a file</button>
+  </div>
+  <div id="houses" class="houses"></div>
+  <p id="empty" class="empty" hidden>No houses yet. Press <b>New house</b> to build your first one!</p>
+</main>
+
+<div id="builder" hidden>
+  <canvas id="view"></canvas>
+  <header id="topbar"></header>
+  <aside id="left"></aside>
+  <aside id="right"></aside>
+  <div id="tip"></div>
+  <div id="hint"></div>
+  <footer id="bottombar"></footer>
+  <div id="measure" hidden></div>
+  <div id="walkhud">
+    <div class="keys"><b>W A S D</b> or arrows to walk · move the mouse to look · <b>Shift</b> to run · click the view to grab the mouse</div>
+    <button id="leave" class="btn walk">⬅ Back to building (Esc)</button>
+    <div class="dot"></div>
+  </div>
+</div>
+<div id="modal" hidden></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
