@@ -4,7 +4,11 @@ import { computeJoins, wallGeometry, wallOpenings } from '../geometry/walls.js';
 import { asRect } from '../geometry/roof.js';
 import { wall, newHouse, STARTERS, WALL_H, uid } from '../model.js';
 import { History, store } from '../store.js';
-import { ITEMS } from '../catalog/items.js';
+import { ITEMS, DEFS } from '../catalog/items.js';
+import { search } from '../catalog/words.js';
+import { makeDef } from '../catalog/makeup.js';
+import { placeSpec, placeInfo } from '../places.js';
+import { buildEnvironment } from '../scene/environments.js';
 
 const out = document.getElementById('out'); let pass = 0, fail = 0;
 const test = (name, fn) => { let err; try { fn(); } catch (e) { err = e; } err ? fail++ : pass++; out.insertAdjacentHTML('beforeend', `<div class="${err ? 'bad' : 'ok'}">${err ? '✗' : '✓'} ${name}${err ? ' — ' + err.message : ''}</div>`); };
@@ -39,4 +43,24 @@ test('a house saved to a file comes back', () => {
   } finally { localStorage.clear(); for (const [k, v] of Object.entries(real)) localStorage.setItem(k, v); }
 });
 test('every catalog item builds', () => { for (const d of ITEMS) { const g = d.make(d.color); if (!g || !g.children.length) throw new Error(d.id); } });
+test('every item has its own id', () => { const seen = new Set(); for (const d of ITEMS) { if (seen.has(d.id)) throw new Error('twice: ' + d.id); seen.add(d.id); } if (ITEMS.length < 180) throw new Error('only ' + ITEMS.length); });
+test('search finds things by other names, plurals and typos', () => {
+  const top = q => search(q, ITEMS).results[0]?.def.id;
+  for (const [q, id] of [['couch', 'sofa'], ['beds', 'bedSingle'], ['refrigerator', 'fridge'], ['trampolene', 'trampoline'], ['pool table', 'poolTable'], ['t rex', 'dinosaur'], ['bouncy castle', 'bounceHouse'], ['hamper', 'laundryBasket']]) if (top(q) !== id) throw new Error(`${q} gave ${top(q)}`);
+  const p = search('pink bed', ITEMS); if (p.parsed.color !== '#f4b6dc' || !p.results[0].def.id.toLowerCase().includes('bed')) throw new Error('pink bed');
+});
+test('made-up things are always the same and they build', () => {
+  for (const q of ['purple dragon', 'giant glowing robot', 'rainbow pizza', 'flibberjab', 'golden throne', 'tiny cat']) {
+    const a = makeDef(q), b = makeDef(q); if (a.made !== b.made || a.w !== b.w) throw new Error(q);
+    const g = a.make(a.color); if (!g.children.length) throw new Error('empty ' + q);
+  }
+  if (makeDef('purple dragon').color !== '#a98ad6') throw new Error('colour'); if (makeDef('giant cat').w <= makeDef('cat').w) throw new Error('size');
+  if (DEFS['made:blue alien'].name !== 'Blue Alien') throw new Error('DEFS');
+});
+test('typed places make a scene', () => {
+  if (placeSpec('forest').preset !== 'forest') throw new Error('preset');
+  const c = placeSpec('candy land'); if (!c.trees.some(t => t[0].startsWith('lolly'))) throw new Error('candy');
+  if (!placeSpec('the moon').space) throw new Error('moon'); if (placeSpec('desert island').water !== 'island') throw new Error('island');
+  for (const t of ['candy land', 'the moon', 'jungle with a lake', 'volcano', 'zorbleflax', 'farm village', 'underwater', 'arctic']) { const e = buildEnvironment(t); if (!e.group.children.length) throw new Error(t); if (!placeInfo(t).name) throw new Error('name ' + t); }
+});
 out.insertAdjacentHTML('afterbegin', `<h2 id="summary" class="${fail ? 'bad' : 'ok'}">${pass} passed, ${fail} failed</h2>`);

@@ -22,7 +22,7 @@ export class Builder {
     this.tools = { walls: new WallTool(this), doors: new OpeningTool(this), paint: new PaintTool(this), furniture: items, garden: items };
     this.walk = new Walk(this); this.ray = new THREE.Raycaster();
     Object.assign(this, { step: 'walls', floor: 0, low: true, showAll: false, wallMode: 'room', openingKind: 'door', openingErase: false,
-      paint: { id: 'paint:#bfe3ee', on: 'wall' }, paintFill: true, placing: null, sel: null, cat: { furniture: 'living', garden: 'garden' }, walking: false });
+      paint: { id: 'paint:#bfe3ee', on: 'wall' }, paintFill: true, placing: null, sel: null, cat: { furniture: 'living', garden: 'garden' }, find: { furniture: '', garden: '' }, walking: false });
     this.selBox = new THREE.BoxHelper(new THREE.Object3D(), '#ff6b5a'); this.selBox.visible = false; this.stage.scene.add(this.selBox);
     addEventListener('resize', () => this.stage.resize());
     addEventListener('keydown', e => this.key(e));
@@ -74,6 +74,7 @@ export class Builder {
   // ---- changing things
   refresh() {
     const s = this.step, build = !this.walking;
+    this.stage.setEnv(this.house.env);
     this.view.sync(this.house, { floor: this.floor, showAll: this.showAll || s === 'roof', walk: this.walking, low: this.lowNow });
     this.stage.grid.visible = build && s !== 'roof' && s !== 'paint'; this.stage.grid.position.y = floorBase(this.floor) + 0.05;
     this.stage.overlay.visible = build;
@@ -105,6 +106,7 @@ export class Builder {
     this.say(below.items.some(i => i.type === 'stairs') ? 'New floor added, with the same walls as the one below.' : 'New floor added. Put Stairs on the floor below (Furniture → Lights & stairs) so you can walk up.');
   }
   removeFloor() { if (this.house.floors.length < 2) return; this.house.floors.pop(); this.floor = Math.min(this.floor, this.house.floors.length - 1); this.tool?.leave?.(); this.commit(); }
+  setPlace(text) { const t = String(text || '').trim().slice(0, 60); if (!t || t === this.house.env) return; this.house.env = t; this.commit(); }
   setTime(h) { this.house.time = h; this.stage.setTime(h); clearTimeout(this.saveT); this.saveT = setTimeout(() => this.saveNow(), 900); }
   setWalk(on) {
     if (on === this.walking) return;

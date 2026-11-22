@@ -4,6 +4,9 @@ import { thumb } from './thumbs.js';
 import { STEPS } from '../app.js';
 import { OPENINGS } from '../model.js';
 import { ITEMS, CATS, DEFS } from '../catalog/items.js';
+import { search, COLORS } from '../catalog/words.js';
+import { placeInfo, placeKey } from '../places.js';
+import { ENVS } from '../model.js';
 import { WALL_PAINTS, FLOOR_PAINTS, ROOF_PAINTS, ITEM_COLORS } from '../scene/materials.js';
 
 const btn = (label, onclick, o = {}) => h('button', { class: 'btn ' + (o.class || '') + (o.on ? ' on' : ''), onclick, title: o.title, disabled: o.disabled }, o.icon && h('span', { class: 'ico' }, o.icon), label && h('span', {}, label));
@@ -13,8 +16,8 @@ const TIPS = {
   walls: { room: 'Drag on the grid to make a room. Rooms can touch and overlap to make any shape.', wall: 'Drag on the grid to draw one wall. Join walls into a loop and a floor appears.', move: 'Drag a corner to stretch or reshape your house.', erase: 'Click a wall to remove it.' },
   doors: 'Pick a door or window, then click a wall to put it in.',
   paint: 'Pick a colour, then click a wall or a floor.',
-  furniture: 'Pick something, then click where it goes. Drag things to move them. Press R to turn.',
-  garden: 'Fill the garden. Trees, fences and flowers keep placing until you press Esc.',
+  furniture: 'Type anything in the search box, or pick something. Then click where it goes. Drag things to move them. Press R to turn.',
+  garden: 'Type any place to move your house there. Fill the garden. Trees, fences and flowers keep placing until you press Esc.',
   roof: 'Choose a roof shape and colour. Sloped roofs fit houses shaped like a rectangle.',
 };
 
@@ -54,10 +57,47 @@ function rightPanel(app) {
       app.view.roofNote && h('p', { class: 'note' }, 'This house has a special shape, so it gets a flat roof. Sloped roofs fit rectangle houses.')),
       card('Roof colour', swatches(ROOF_PAINTS, r.mat, p => set({ mat: p.id }), 'wide'))];
   }
-  const cats = CATS[s], cur = app.cat[s];
-  return h('section', { class: 'card catalog' },
-    h('div', { class: 'tabs' }, cats.map(([k, l]) => h('button', { class: 'tab' + (k === cur ? ' on' : ''), onclick: () => { app.cat[s] = k; app.ui(); } }, l))),
-    h('div', { class: 'grid2' }, ITEMS.filter(d => d.cat === cur).map(d => h('button', { class: 'tile item' + (app.placing === d.id ? ' on' : ''), onclick: () => { app.tools.furniture.setPlacing(app.placing === d.id ? null : d.id); app.ui(); } }, h('img', { src: thumb(d), alt: '' }), h('span', {}, d.name)))));
+  const cats = CATS[s], cur = app.cat[s], q = app.find[s] || '';
+  const place = s === 'garden' && placeCard(app);
+  let timer;
+  const box = h('input', { class: 'find', id: 'find', type: 'search', placeholder: s === 'garden' ? '🔍 Type anything for outside…' : '🔍 Type any furniture…', value: q, 'aria-label': 'Search for things',
+    oninput: e => { app.find[s] = e.target.value; clearTimeout(timer); timer = setTimeout(() => { fill($('found'), results(app, s)); }, 120); },
+    onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); $('found').querySelector('.tile')?.click(); } } });
+  return [place, h('section', { class: 'card catalog' }, box, h('div', { id: 'found' }, results(app, s)))];
+}
+
+const IDEAS = ['candy land', 'the moon', 'jungle', 'desert', 'tropical island', 'volcano', 'fairy forest', 'underwater', 'christmas', 'halloween'];
+function placeCard(app) {
+  const cur = app.house.env, info = placeInfo(cur), go = v => { app.setPlace(v); };
+  const input = h('input', { class: 'find', placeholder: 'Type any place…', maxLength: 60, 'aria-label': 'Where is your house?', onkeydown: e => { if (e.key === 'Enter') go(e.target.value); } });
+  return card('🌍 Where is your house?',
+    h('p', { class: 'small' }, 'Now: ' + info.emoji + ' ' + info.name),
+    h('div', { class: 'place-box' }, input, btn('Go', () => go(input.value), { class: 'pill' })),
+    h('div', { class: 'chips' }, [...Object.entries(ENVS).map(([k, e]) => [k, e.emoji + ' ' + e.name]), ...IDEAS.map(t => [t, placeInfo(t).emoji + ' ' + t])].map(([k, l]) => h('button', { class: 'chip' + (placeKey(cur) === k ? ' on' : ''), onclick: () => go(k) }, l))));
+}
+
+const tile = (app, type, label, pic, color, extra = '') => h('button', { class: 'tile item' + extra + (app.placing === type && (app.tools.furniture.placeColor || null) === (color || null) ? ' on' : ''), title: label,
+  onclick: () => { const on = app.placing === type && (app.tools.furniture.placeColor || null) === (color || null); app.tools.furniture.setPlacing(on ? null : type, color); app.ui(); } },
+  h('img', { src: pic, alt: '' }), h('span', {}, label));
+
+function results(app, s) {
+  const q = (app.find[s] || '').trim();
+  if (!q) {
+    const cats = CATS[s], cur = app.cat[s];
+    return [h('div', { class: 'tabs' }, cats.map(([k, l]) => h('button', { class: 'tab' + (k === cur ? ' on' : ''), onclick: () => { app.cat[s] = k; app.ui(); } }, l))),
+      h('div', { class: 'grid2' }, ITEMS.filter(d => d.cat === cur).map(d => tile(app, d.id, d.name, thumb(d))))];
+  }
+  const { parsed, results: found } = search(q, ITEMS), color = parsed.color && parsed.color !== 'rainbow' ? parsed.color : null;
+  const cw = parsed.raw.split(' ').find(w => COLORS[w]);
+  const shown = found.slice(0, 24).map(({ def }) => {
+    const c = color && def.color ? color : null;
+    return tile(app, def.id, c ? cw[0].toUpperCase() + cw.slice(1) + ' ' + def.name.toLowerCase() : def.name, c ? thumb({ id: def.id + '|' + c, make: () => def.make(c) }) : thumb(def), c);
+  });
+  const good = found.some(r => r.full);
+  const made = parsed.words.length ? DEFS['made:' + parsed.raw] : null;
+  const make = made && h('div', { class: 'makeup' }, h('p', { class: 'small' }, good ? 'Not quite right? DREAMO can invent one:' : 'DREAMO doesn\'t have that yet, so it made one up for you!'),
+    h('div', { class: 'grid2' }, tile(app, made.id, '✨ ' + made.name, thumb(made), null, ' made')));
+  return good ? [h('div', { class: 'grid2' }, shown), make] : [make, shown.length ? h('p', { class: 'small' }, 'Or maybe one of these:') : null, h('div', { class: 'grid2' }, shown)];
 }
 
 function bottomBar(app) {

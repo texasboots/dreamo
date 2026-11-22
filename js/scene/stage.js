@@ -56,7 +56,7 @@ export class Stage {
   setEnv(env) {
     if (this.env === env) return;
     if (this.envGroup) this.scene.remove(this.envGroup);
-    const e = buildEnvironment(env); this.env = env; this.envGroup = e.group; this.look = e.look; this.grid.children.forEach(g => g.material.color.set(env === 'snow' || env === 'beach' ? '#3d4a66' : '#ffffff')); this.scene.add(e.group); this.setTime(this.hour);
+    const e = buildEnvironment(env); this.env = env; this.envGroup = e.group; this.look = e.look; this.grid.children.forEach(g => g.material.color.set(e.look.darkGrid ? '#3d4a66' : '#ffffff')); this.scene.add(e.group); this.setTime(this.hour);
   }
 
   // hour runs from 6 (sunrise) to 24 (midnight).
@@ -78,6 +78,9 @@ export class Stage {
     this.scene.environmentIntensity = 0.1 + 0.5 * day;
     this.scene.fog.color.set('#0b1020').lerp(new THREE.Color(look.fog), day).lerp(new THREE.Color('#f0a878'), day * low * 0.55);
     this.stars.material.opacity = nightK;
+    this.sky.visible = !look.space; this.scene.background = look.space ? new THREE.Color('#05060f') : null;
+    if (look.space) { this.stars.material.opacity = 1; this.scene.fog.color.set('#05060f'); this.hemi.intensity = 0.45 + 0.4 * day; }
+    if (look.underwater) { this.scene.fog.color.set(look.fog).multiplyScalar(0.35 + 0.65 * day); this.scene.fog.near = 30; this.scene.fog.far = 420; this.stars.material.opacity = 0; } else { this.scene.fog.near = 160; this.scene.fog.far = look.space ? 2600 : 1100; }
     for (const g of glow) g.m.emissiveIntensity = g.k * nightK;
     this.placeLamps();
   }

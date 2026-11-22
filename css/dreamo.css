@@ -96,3 +96,9 @@ h1, h2, h3, h4, p { margin: 0; }
 @media (max-width: 1180px) { .step .lbl { display: none; } .step { padding: 8px; } #topbar .name { width: 150px; } #tip, #hint { max-width: calc(100% - 500px); } }
 @media (max-width: 700px) { .choices { grid-template-columns: repeat(2, 1fr); } }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; transition: none !important; } #hint.pop { opacity: 1; } }
+.find { width: 100%; font: inherit; font-size: 15px; font-weight: 700; padding: 11px 12px; border-radius: 14px; border: 3px solid var(--line); background: #fff; color: var(--ink); outline: none; }
+.find:focus { border-color: var(--coral); }
+#found { display: flex; flex-direction: column; gap: 8px; }
+.makeup { display: flex; flex-direction: column; gap: 6px; } .makeup .grid2 { grid-template-columns: 1fr; } .tile.made { background: linear-gradient(135deg, #fff1d6, #f6e6ff); border-color: #e9d4ff; } .tile.made.on { border-color: var(--plum); }
+.place-box { display: flex; gap: 6px; } .place-box .find { flex: 1; } .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { padding: 6px 10px; border-radius: 12px; background: #f1e8da; font-size: 13px; font-weight: 700; } .chip.on { background: var(--teal); color: #fff; } .chip:hover { background: #fff3e2; } .chip.on:hover { background: var(--teal); }

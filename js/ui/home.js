@@ -2,6 +2,7 @@
 import { h, fill, $ } from './dom.js';
 import { store } from '../store.js';
 import { ENVS, STARTERS, newHouse, uid } from '../model.js';
+import { placeInfo } from '../places.js';
 
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(t).toLocaleDateString(); };
 
@@ -10,8 +11,8 @@ export function renderHome(open) {
   fill($('houses'),
     h('button', { class: 'house new', onclick: () => chooser(open) }, h('span', { class: 'plus' }, '＋'), h('b', {}, 'New house')),
     list.map(r => h('div', { class: 'house' },
-      h('button', { class: 'pic', style: r.thumb ? `background-image:url(${r.thumb})` : 'background:' + (ENVS[r.env]?.css || '#cde'), onclick: () => { const d = store.load(r.id); if (d) open(d); }, 'aria-label': 'Open ' + r.name }),
-      h('div', { class: 'meta' }, h('b', {}, r.name), h('small', {}, (ENVS[r.env]?.emoji || '') + ' ' + (ENVS[r.env]?.name || '') + ' · ' + ago(r.updated))),
+      h('button', { class: 'pic', style: r.thumb ? `background-image:url(${r.thumb})` : 'background:' + (placeInfo(r.env).css || '#cde'), onclick: () => { const d = store.load(r.id); if (d) open(d); }, 'aria-label': 'Open ' + r.name }),
+      h('div', { class: 'meta' }, h('b', {}, r.name), h('small', {}, placeInfo(r.env).emoji + ' ' + placeInfo(r.env).name + ' · ' + ago(r.updated))),
       h('div', { class: 'acts' },
         h('button', { title: 'Rename', onclick: () => { const n = prompt('Name this house', r.name); if (n?.trim()) { const d = store.load(r.id); d.name = n.trim().slice(0, 40); store.save(d); renderHome(open); } } }, '✏️'),
         h('button', { title: 'Save to a file', onclick: () => download([r.id], r.name) }, '💾'),
@@ -45,12 +46,15 @@ function openFiles(open) {
 function chooser(open) {
   const m = $('modal'), pick = { env: 'forest', start: 'blank' }, n = store.list().length + 1;
   const name = h('input', { class: 'name', value: 'My Dream House ' + n, maxLength: 40, 'aria-label': 'House name' });
+  const where = h('input', { class: 'find where', placeholder: '…or type any place: candy land, the moon, a jungle…', maxLength: 60, 'aria-label': 'Type a place',
+    oninput: e => { const v = e.target.value.trim(); pick.env = v || pick.preset; m.querySelectorAll('.envs .choice').forEach(b => b.classList.toggle('on', !v && b.dataset.env === pick.preset)); } });
+  pick.preset = 'forest';
   const close = () => { m.hidden = true; };
   const draw = () => fill(m, h('div', { class: 'sheet' },
     h('button', { class: 'x', onclick: close, 'aria-label': 'Close' }, '✕'),
     h('h2', {}, 'Start a new house'),
     h('h3', {}, '1. Where will it be?'),
-    h('div', { class: 'choices' }, Object.entries(ENVS).map(([k, e]) => h('button', { class: 'choice' + (pick.env === k ? ' on' : ''), onclick: () => { pick.env = k; draw(); } }, h('span', { class: 'scene', style: 'background:' + e.css }, e.emoji), h('b', {}, e.name)))),
+    h('div', { class: 'choices envs' }, Object.entries(ENVS).map(([k, e]) => h('button', { class: 'choice' + (pick.env === k ? ' on' : ''), 'data-env': k, onclick: () => { pick.env = pick.preset = k; where.value = ''; draw(); } }, h('span', { class: 'scene', style: 'background:' + e.css }, e.emoji), h('b', {}, e.name)))), where,
     h('h3', {}, '2. How do you want to start?'),
     h('div', { class: 'choices' }, Object.entries(STARTERS).map(([k, s]) => h('button', { class: 'choice' + (pick.start === k ? ' on' : ''), onclick: () => { pick.start = k; draw(); } }, h('span', { class: 'scene plain' }, s.emoji), h('b', {}, s.name), h('small', {}, s.note)))),
     h('h3', {}, '3. Give it a name'), name,

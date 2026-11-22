@@ -2,6 +2,8 @@
 // w, d = footprint in metres (front faces +z). flat = you can walk over it. light = where its lamp glows.
 import { box, cyl, sph, cone, torus, rbox, turn, legs, group, rand, tree } from './parts.js';
 import { FLOOR_H } from '../model.js';
+import { MORE } from './more.js';
+import { makeDef } from './makeup.js';
 
 const WOOD = 'grain:#c79a66', DARK = 'grain:#6b4a32', WHITE = 'color:#f7f5f0', BLACK = 'color:#232528', STEEL = 'metal';
 const fab = c => 'fabric:' + c, col = c => 'color:' + c;
@@ -96,7 +98,12 @@ export const CATS = {
   furniture: [['living', '🛋️ Living'], ['bedroom', '🛏️ Bedroom'], ['kitchen', '🍳 Kitchen'], ['bath', '🛁 Bath'], ['lights', '💡 Lights & stairs'], ['fun', '🎉 Fun']],
   garden: [['garden', '🌳 Garden'], ['fun', '🎉 Fun']],
 };
-export const DEFS = Object.fromEntries(ITEMS.map(d => [d.id, d]));
+ITEMS.push(...MORE);
+// Made-up things ("made:purple dragon") are invented the first time they are asked for.
+export const DEFS = new Proxy(Object.fromEntries(ITEMS.map(d => [d.id, d])), {
+  get: (t, k) => k in t || typeof k !== 'string' || !k.startsWith('made:') ? t[k] : (t[k] = makeDef(k.slice(5))),
+  has: (t, k) => k in t || (typeof k === 'string' && k.startsWith('made:')),
+});
 export const buildItem = it => { const d = DEFS[it.type]; return d ? d.make(it.color || d.color) : null; };
 
 // The four corners of an item on the ground, in world x/z.

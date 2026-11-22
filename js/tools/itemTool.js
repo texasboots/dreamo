@@ -8,10 +8,10 @@ const snap = v => Math.max(-PLOT / 2, Math.min(PLOT / 2, Math.round(v * 4) / 4))
 export class ItemTool {
   constructor(app) { this.app = app; this.rot = 0; }
   leave() { this.setPlacing(null); this.app.sel = null; }
-  setPlacing(type) {
+  setPlacing(type, color = null) {
     if (this.ghost) { this.app.stage.overlay.remove(this.ghost); this.ghost = null; }
-    this.app.placing = type;
-    if (type) { this.app.sel = null; this.ghost = buildItem({ type }); this.ghost.visible = false; this.ghost.rotation.y = this.rot; this.app.stage.overlay.add(this.ghost); }
+    this.app.placing = type; this.placeColor = type ? color : null;
+    if (type) { this.app.sel = null; this.ghost = buildItem({ type, color }); this.ghost.visible = false; this.ghost.rotation.y = this.rot; this.app.stage.overlay.add(this.ghost); }
   }
   hit(e) { return this.app.pick(e, [this.app.view.floors[this.app.floor].items]).map(h => tagOf(h.object)).find(t => t)?.item; }
   down(e) {
@@ -33,6 +33,7 @@ export class ItemTool {
     if (app.placing) {
       const gp = app.groundPoint(e); if (!gp) return;
       const def = DEFS[app.placing], it = { id: uid(), type: app.placing, x: snap(gp.x), z: snap(gp.z), rot: this.rot };
+      if (this.placeColor) it.color = this.placeColor;
       app.fl.items.push(it);
       if (!def.multi && !e.shiftKey) { this.setPlacing(null); app.sel = it.id; }
       return app.commit();
