@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DREAMO share picture</title>
+<!-- Draws the 1200×630 picture shown when DREAMO is shared in a text or on social media.
+     Remake it with:  tools/make-share-image.sh   (try ?env=forest&starter=cottage&hour=17) -->
+<link rel="stylesheet" href="../css/dreamo.css">
+<script type="importmap">{ "imports": { "three": "../vendor/three/three.module.js", "three/addons/": "../vendor/three/addons/" } }</script>
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #fbe3c4; }
+  #view { position: absolute; inset: 0; width: 1200px; height: 630px; display: block; }
+  .fade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255, 248, 236, .97) 0%, rgba(255, 248, 236, .88) 28%, rgba(255, 248, 236, .3) 44%, rgba(255, 248, 236, 0) 54%); }
+  .words { position: absolute; left: 64px; top: 0; bottom: 0; width: 620px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .logo { font-size: 128px; }
+  .tag { font-size: 40px; font-weight: 900; line-height: 1.12; color: var(--ink); }
+  .tag em { font-style: normal; color: var(--coral); }
+  .chips { display: flex; flex-wrap: nowrap; gap: 8px; }
+  .chips span { background: #fff; border-radius: 999px; padding: 8px 14px; font-size: 19px; font-weight: 800; white-space: nowrap; color: var(--ink); box-shadow: 0 4px 0 rgba(60, 40, 20, .12); }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div class="fade"></div>
+<div class="words">
+  <h1 class="logo" aria-label="DREAMO"><span>D</span><span>R</span><span>E</span><span>A</span><span>M</span><span>O</span></h1>
+  <p class="tag">Design your <em>dream house</em> in 3D</p>
+  <div class="chips"><span>🧱 Build</span><span>🎨 Paint</span><span>🛋️ Decorate</span><span>🚶 Walk inside</span></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { Stage } from '../js/scene/stage.js';
+import { HouseView } from '../js/scene/houseView.js';
+import { newHouse } from '../js/model.js';
+
+const q = new URLSearchParams(location.search);
+const env = q.get('env') || 'beach', starter = q.get('starter') || 'modern', hour = +(q.get('hour') || 17.9);
+const stage = new Stage(document.getElementById('view')), view = new HouseView(stage.scene);
+const house = newHouse('Share', env, starter); house.roof.style = q.get('roof') || house.roof.style;
+stage.setEnv(env); stage.setTime(hour);
+view.sync(house, { floor: house.floors.length - 1, showAll: true, walk: false, low: false });
+stage.setLampSpots(view.lampSpots(house, 99));
+stage.grid.visible = stage.overlay.visible = false;
+
+// Aim at the house, then shift the picture so the house sits on the right, beside the words.
+const box = new THREE.Box3().setFromObject(view.root), mid = box.getCenter(new THREE.Vector3());
+const size = box.getSize(new THREE.Vector3()).length(), turn = +(q.get('turn') || 0.62), dist = size * (+(q.get('zoom') || 0.86));
+stage.camera.position.set(mid.x + Math.sin(turn) * dist, mid.y + dist * +(q.get('up') || 0.24), mid.z + Math.cos(turn) * dist);
+stage.controls.target.copy(mid).add(new THREE.Vector3(0, +(q.get('lift') || 1.2), 0)); stage.controls.update();
+stage.renderer.setPixelRatio(devicePixelRatio); stage.renderer.setSize(1200, 630, false);
+stage.camera.aspect = 1200 / 630; stage.camera.setViewOffset(1200, 630, -275, 10, 1200, 630); stage.camera.updateProjectionMatrix();
+stage.followSun(); stage.render();
+document.title = 'ready';
+</script>
+</body>
+</html>
