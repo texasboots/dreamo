@@ -4,6 +4,7 @@ import { box, cyl, sph, cone, torus, rbox, turn, legs, group, rand, tree } from 
 import { FLOOR_H } from '../model.js';
 import { MORE } from './more.js';
 import { FOOD } from './food.js';
+import { VEHICLES } from './vehicles.js';
 import { makeDef } from './makeup.js';
 
 const WOOD = 'grain:#c79a66', DARK = 'grain:#6b4a32', WHITE = 'color:#f7f5f0', BLACK = 'color:#232528', STEEL = 'metal';
@@ -96,10 +97,12 @@ export const ITEMS = [
 ];
 
 export const CATS = {
-  furniture: [['living', '🛋️ Living'], ['bedroom', '🛏️ Bedroom'], ['kitchen', '🍳 Kitchen'], ['bath', '🛁 Bath'], ['lights', '💡 Lights & stairs'], ['fun', '🎉 Fun']],
-  garden: [['garden', '🌳 Garden'], ['fun', '🎉 Fun']],
+  furniture: [['living', '🛋️ Living'], ['bedroom', '🛏️ Bedroom'], ['kitchen', '🍳 Kitchen'], ['bath', '🛁 Bath'], ['lights', '💡 Lights & stairs'], ['fun', '🎉 Fun'], ['vehicles', '🚗 Vehicles']],
+  garden: [['garden', '🌳 Garden'], ['fun', '🎉 Fun'], ['vehicles', '🚗 Vehicles']],
 };
-ITEMS.push(...MORE, ...FOOD);
+ITEMS.push(...MORE, ...FOOD, ...VEHICLES);
+// Things with wheels, wings or tracks all live in the Vehicles tab.
+for (const d of ITEMS) if (['car', 'garageBox', 'boat', 'motorbike', 'tractor', 'golfCart', 'rocket'].includes(d.id)) d.cat = 'vehicles';
 // Made-up things ("made:purple dragon") are invented the first time they are asked for.
 export const DEFS = new Proxy(Object.fromEntries(ITEMS.map(d => [d.id, d])), {
   get: (t, k) => k in t || typeof k !== 'string' || !k.startsWith('made:') ? t[k] : (t[k] = makeDef(k.slice(5))),
