@@ -16,7 +16,7 @@ const TIPS = {
   walls: { room: 'Drag on the grid to make a room. Rooms can touch and overlap to make any shape.', wall: 'Drag on the grid to draw one wall. Join walls into a loop and a floor appears.', move: 'Drag a corner to stretch or reshape your house.', erase: 'Click a wall to remove it.' },
   doors: 'Pick a door or window, then click a wall to put it in.',
   paint: 'Pick a colour, then click a wall or a floor.',
-  furniture: 'Type anything in the search box, or pick something. Then click where it goes. Drag things to move them. Press R to turn.',
+  furniture: 'Food goes in Kitchen: click a table or counter to put a dish on top. Type anything in the search box, or pick something. Then click where it goes. Drag things to move them. Press R to turn.',
   garden: 'Type any place to move your house there. Fill the garden. Trees, fences and flowers keep placing until you press Esc.',
   roof: 'Choose a roof shape and colour. Sloped roofs fit houses shaped like a rectangle.',
 };

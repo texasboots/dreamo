@@ -89,7 +89,7 @@ export class HouseView {
       let e = f.map.get(it.id);
       if (!e || e.sig !== sig) { if (e) f.items.remove(e.g); const g = buildItem(it); if (!g) continue; e = { g, sig }; f.map.set(it.id, e); f.items.add(g); }
       e.g.userData.tag = { kind: 'item', item: it };
-      e.g.position.set(it.x, 0, it.z); e.g.rotation.y = it.rot || 0;
+      e.g.position.set(it.x, it.y || 0, it.z); e.g.rotation.y = it.rot || 0;
     }
     for (const [id, e] of f.map) if (!live.has(id)) { f.items.remove(e.g); f.map.delete(id); }
   }

@@ -3,6 +3,7 @@
 import { box, cyl, sph, cone, torus, rbox, turn, legs, group, rand, tree } from './parts.js';
 import { FLOOR_H } from '../model.js';
 import { MORE } from './more.js';
+import { FOOD } from './food.js';
 import { makeDef } from './makeup.js';
 
 const WOOD = 'grain:#c79a66', DARK = 'grain:#6b4a32', WHITE = 'color:#f7f5f0', BLACK = 'color:#232528', STEEL = 'metal';
@@ -98,7 +99,7 @@ export const CATS = {
   furniture: [['living', '🛋️ Living'], ['bedroom', '🛏️ Bedroom'], ['kitchen', '🍳 Kitchen'], ['bath', '🛁 Bath'], ['lights', '💡 Lights & stairs'], ['fun', '🎉 Fun']],
   garden: [['garden', '🌳 Garden'], ['fun', '🎉 Fun']],
 };
-ITEMS.push(...MORE);
+ITEMS.push(...MORE, ...FOOD);
 // Made-up things ("made:purple dragon") are invented the first time they are asked for.
 export const DEFS = new Proxy(Object.fromEntries(ITEMS.map(d => [d.id, d])), {
   get: (t, k) => k in t || typeof k !== 'string' || !k.startsWith('made:') ? t[k] : (t[k] = makeDef(k.slice(5))),
