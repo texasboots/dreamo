@@ -25,6 +25,9 @@ function scatter(group, kind, n, r, place, snow = false, scale = [0.8, 1.5]) {
 const ring = (r0, r1, ok = () => true) => r => { const a = r() * 6.283, d = r0 + (r1 - r0) * Math.sqrt(r()), p = [Math.cos(a) * d, Math.sin(a) * d]; return Math.max(Math.abs(p[0]), Math.abs(p[1])) > PLOT / 2 + 3 && ok(p) ? p : null; };
 const flat = (w, d, m, x, y, z) => { const me = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat(m)); me.rotation.x = -Math.PI / 2; me.position.set(x, y, z); me.receiveShadow = true; const uv = me.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w, uv.getY(i) * d); return me; };
 
+// The big ground. The stage cuts holes in it where a basement is dug.
+const groundOf = m => { const me = flat(2400, 2400, m, 0, 0, 0); me.userData.ground = true; return me; };
+
 function hills(group, r, n, r0, r1, h0, h1, colors, sharp, arc = [0, 6.283]) {
   for (let i = 0; i < n; i++) {
     const a = arc[0] + (i / n) * (arc[1] - arc[0]) + r() * 0.3, d = r0 + r() * (r1 - r0), h = h0 + r() * (h1 - h0), w = h * (sharp ? 1.1 : 2.4) + r() * 60;
@@ -44,7 +47,7 @@ export function buildEnvironment(env) {
   const g = new THREE.Group(), r = rng(42);
   if (!ENV_LOOK[env]) return buildPlace(placeSpec(env), g, r);
   const look = { ...ENV_LOOK[env], darkGrid: env === 'snow' || env === 'beach' };
-  g.add(flat(2400, 2400, look.ground, 0, 0, 0));
+  g.add(groundOf(look.ground));
   if (env === 'forest') {
     scatter(g, 'pine', 170, r, ring(28, 170)); scatter(g, 'leafy', 150, r, ring(27, 150)); scatter(g, 'bush', 60, r, ring(25, 90)); scatter(g, 'rock', 20, r, ring(26, 120));
     hills(g, r, 16, 330, 520, 40, 90, ['#3f6f3f', '#5c8f52'], false);
@@ -105,7 +108,7 @@ function buildPlace(s, g, r) {
   const look = { ...s.look, space: !!s.space, underwater: !!s.underwater };
   const lum = new THREE.Color(s.ground.startsWith('color:') ? s.ground.slice(6) : ({ sand: '#ecd9a6', snow: '#f6f9fc' })[s.ground] || '#6a9a42');
   look.darkGrid = lum.r * 0.3 + lum.g * 0.59 + lum.b * 0.11 > 0.62;
-  g.add(flat(2400, 2400, s.ground, 0, 0, 0));
+  g.add(groundOf(s.ground));
   let ok = () => true, far = 170, arc = [0, 6.283];
   if (s.water === 'sea') { g.add(flat(2400, 1200, 'sea', 0, 0.12, -640), flat(2400, 5, 'color:#f4fbfd', 0, 0.13, -39.5)); ok = p => p[1] > -34; arc = [0.2, 2.9]; }
   if (s.water === 'island') { g.add(disc(1500, 'sea', 0, 0.12, 0, 74), disc(75, 'color:#f4fbfd', 0, 0.11, 0, 72)); ok = p => Math.hypot(p[0], p[1]) < 66; far = 70; }

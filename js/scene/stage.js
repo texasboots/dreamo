@@ -46,6 +46,9 @@ export class Stage {
     const bold = new THREE.GridHelper(PLOT, PLOT / 2, '#ffffff', '#ffffff'); bold.material.transparent = true; bold.material.opacity = 0.34; bold.material.depthWrite = false; bold.position.y = 0.002;
     this.grid.add(fine, bold); this.scene.add(this.grid);
     this.overlay = new THREE.Group(); this.scene.add(this.overlay);
+    // Under the ground: a dirt floor and the dirt sides of the hole dug for a basement.
+    this.dirtMat = new THREE.MeshStandardMaterial({ color: '#6e5038', roughness: 1, side: THREE.FrontSide });
+    this.pit = new THREE.Group(); this.scene.add(this.pit);
 
     this.controls = new OrbitControls(this.camera, canvas);
     Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.12, maxPolarAngle: Math.PI / 2 - 0.03, minDistance: 3, maxDistance: 110, zoomSpeed: 1.2 });
@@ -56,7 +59,34 @@ export class Stage {
   setEnv(env) {
     if (this.env === env) return;
     if (this.envGroup) this.scene.remove(this.envGroup);
-    const e = buildEnvironment(env); this.env = env; this.envGroup = e.group; this.look = e.look; this.grid.children.forEach(g => g.material.color.set(e.look.darkGrid ? '#3d4a66' : '#ffffff')); this.scene.add(e.group); this.setTime(this.hour);
+    const e = buildEnvironment(env); this.env = env; this.envGroup = e.group;
+    this.ground = e.group.children.find(c => c.userData.ground); this.ground.material = this.ground.material.clone(); this.digSig = null; this.setDig(this.dig || [], this.seeDown); this.look = e.look; this.grid.children.forEach(g => g.material.color.set(e.look.darkGrid ? '#3d4a66' : '#ffffff')); this.scene.add(e.group); this.setTime(this.hour);
+  }
+
+  // Dig holes in the ground where the basement is. While building the basement the ground turns see-through.
+  setDig(outlines, seeDown = false) {
+    this.dig = outlines; this.seeDown = seeDown; if (!this.ground) return;
+    const sig = JSON.stringify(outlines);
+    if (sig !== this.digSig) {
+      this.digSig = sig; const old = this.ground.geometry, S = 1200;
+      const sh = new THREE.Shape([[-S, -S], [S, -S], [S, S], [-S, S]].map(([x, y]) => new THREE.Vector2(x, y)));
+      for (const o of outlines) sh.holes.push(new THREE.Path(o.map(([x, z]) => new THREE.Vector2(x, -z))));
+      this.ground.geometry = outlines.length ? new THREE.ShapeGeometry(sh) : new THREE.PlaneGeometry(2400, 2400);
+      if (!outlines.length) { const uv = this.ground.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 2400, uv.getY(i) * 2400); }
+      old.dispose();
+      for (const c of [...this.pit.children]) { this.pit.remove(c); c.geometry.dispose(); }
+      if (outlines.length) {
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), this.dirtMat); floor.rotation.x = -Math.PI / 2; floor.position.y = -3.4; this.pit.add(floor);
+        const pos = [];
+        for (const o0 of outlines) {                  // wind each outline so the dirt faces point into the hole
+          const area = o0.reduce((s, p, i) => { const q = o0[(i + 1) % o0.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0), o = area > 0 ? [...o0].reverse() : o0;
+          o.forEach((a, i) => { const b = o[(i + 1) % o.length]; pos.push(a[0], 0, a[1], b[0], 0, b[1], b[0], -3.4, b[1], a[0], 0, a[1], b[0], -3.4, b[1], a[0], -3.4, a[1]); });
+        }
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+        const sides = new THREE.Mesh(g, this.dirtMat); sides.receiveShadow = true; this.pit.add(sides);
+      }
+    }
+    const m = this.ground.material; m.transparent = seeDown; m.opacity = seeDown ? 0.35 : 1; m.depthWrite = !seeDown; m.needsUpdate = true;
   }
 
   // hour runs from 6 (sunrise) to 24 (midnight).

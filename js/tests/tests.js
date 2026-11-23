@@ -2,7 +2,7 @@
 import { findRooms, roomAt } from '../geometry/rooms.js';
 import { computeJoins, wallGeometry, wallOpenings } from '../geometry/walls.js';
 import { asRect } from '../geometry/roof.js';
-import { wall, newHouse, STARTERS, WALL_H, uid } from '../model.js';
+import { wall, newHouse, STARTERS, WALL_H, uid, levels, floorAt, floorBase } from '../model.js';
 import { History, store } from '../store.js';
 import { ITEMS, DEFS } from '../catalog/items.js';
 import { search } from '../catalog/words.js';
@@ -62,5 +62,10 @@ test('typed places make a scene', () => {
   const c = placeSpec('candy land'); if (!c.trees.some(t => t[0].startsWith('lolly'))) throw new Error('candy');
   if (!placeSpec('the moon').space) throw new Error('moon'); if (placeSpec('desert island').water !== 'island') throw new Error('island');
   for (const t of ['candy land', 'the moon', 'jungle with a lake', 'volcano', 'zorbleflax', 'farm village', 'underwater', 'arctic']) { const e = buildEnvironment(t); if (!e.group.children.length) throw new Error(t); if (!placeInfo(t).name) throw new Error('name ' + t); }
+});
+test('a basement sits underground and its stairs reach the ground floor', () => {
+  const h = newHouse('b', 'forest', 'cottage'); h.basement = { walls: rect(-4, -3, 4, 3), items: [], floorPaint: [] };
+  eq(levels(h)[0][0], -1); if (floorAt(h, -1) !== h.basement || floorAt(h, -2)) throw new Error('floorAt'); eq(floorBase(-1), -3);
+  if (!DEFS.golfCart || !DEFS.golfCart.make('#fff').children.length) throw new Error('golf cart');
 });
 out.insertAdjacentHTML('afterbegin', `<h2 id="summary" class="${fail ? 'bad' : 'ok'}">${pass} passed, ${fail} failed</h2>`);

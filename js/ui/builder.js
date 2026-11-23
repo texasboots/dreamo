@@ -62,7 +62,7 @@ function rightPanel(app) {
   let timer;
   const box = h('input', { class: 'find', id: 'find', type: 'search', placeholder: s === 'garden' ? '🔍 Type anything for outside…' : '🔍 Type any furniture…', value: q, 'aria-label': 'Search for things',
     oninput: e => { app.find[s] = e.target.value; clearTimeout(timer); timer = setTimeout(() => { fill($('found'), results(app, s)); }, 120); },
-    onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); $('found').querySelector('.tile')?.click(); } } });
+    onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); app.find[s] = e.target.value; fill($('found'), results(app, s)); $('found').querySelector('.tile')?.click(); } } });
   return [place, h('section', { class: 'card catalog' }, box, h('div', { id: 'found' }, results(app, s)))];
 }
 
@@ -103,8 +103,12 @@ function results(app, s) {
 function bottomBar(app) {
   const n = app.house.floors.length, hr = app.house.time ?? 13;
   return [
-    h('div', { class: 'group' }, h('label', {}, 'Floor'), app.house.floors.map((_, i) => btn(i ? String(i + 1) : 'Ground', () => app.setFloor(i), { on: app.floor === i, class: 'pill' })),
-      btn('', () => app.addFloor(), { icon: '＋', class: 'pill', title: 'Add a floor on top', disabled: n >= 4 }), n > 1 && btn('', () => { if (confirm('Remove the top floor and everything on it?')) app.removeFloor(); }, { icon: '－', class: 'pill', title: 'Remove the top floor' })),
+    h('div', { class: 'group' }, h('label', {}, 'Floor'),
+      app.house.basement ? btn('Basement', () => app.setFloor(-1), { icon: '⛏️', on: app.floor === -1, class: 'pill', title: 'Go down to the basement' })
+        : btn('Basement', () => app.digBasement(), { icon: '⛏️', class: 'pill', title: 'Dig a basement under your house' }),
+      app.house.floors.map((_, i) => btn(i ? String(i + 1) : 'Ground', () => app.setFloor(i), { on: app.floor === i, class: 'pill' })),
+      btn('', () => app.addFloor(), { icon: '＋', class: 'pill', title: 'Add a floor on top', disabled: n >= 4 }), n > 1 && btn('', () => { if (confirm('Remove the top floor and everything on it?')) app.removeFloor(); }, { icon: '－', class: 'pill', title: 'Remove the top floor' }),
+      app.floor === -1 && btn('Fill in', () => { if (confirm('Fill in the basement and lose everything down there?')) app.fillBasement(); }, { icon: '🪣', class: 'pill', title: 'Fill the basement back in with dirt' })),
     h('div', { class: 'group' }, btn('Undo', () => app.undo(), { icon: '↶', disabled: !app.history.canUndo }), btn('Redo', () => app.redo(), { icon: '↷', disabled: !app.history.canRedo })),
     h('div', { class: 'group time' }, h('span', {}, '🌅'), h('input', { type: 'range', min: 6, max: 24, step: 0.25, value: hr, title: 'Time of day', oninput: e => app.setTime(+e.target.value) }), h('span', {}, '🌙')),
     h('div', { class: 'group' }, (app.step === 'furniture' || app.step === 'walls') && btn('Low walls', () => { app.low = !app.low; app.refresh(); app.ui(); }, { icon: '👀', on: app.low, title: 'Lower the walls so you can see inside' }), btn('Whole house', () => { app.showAll = !app.showAll; app.refresh(); app.ui(); }, { icon: '🏡', on: app.showAll || app.step === 'roof', title: 'Show every floor and the roof' })),
@@ -125,6 +129,6 @@ export function renderBuilder(app) {
   fill($('left'), leftPanel(app));
   fill(right, rightPanel(app)); right.scrollTop = scroll;
   fill($('bottombar'), bottomBar(app));
-  const tip = TIPS[app.step]; $('tip').textContent = typeof tip === 'string' ? tip : tip[app.wallMode];
+  const tip = TIPS[app.step]; $('tip').textContent = app.floor === -1 && app.step === 'walls' && app.wallMode !== 'erase' ? '⛏️ Drag on the grid to dig out a basement room. Then add Stairs (Furniture → Lights & stairs) to climb up.' : typeof tip === 'string' ? tip : tip[app.wallMode];
   app.canvas.style.cursor = app.step === 'walls' && app.wallMode !== 'erase' ? 'crosshair' : 'default';
 }

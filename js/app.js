@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Stage } from './scene/stage.js';
 import { HouseView } from './scene/houseView.js';
 import { store, History } from './store.js';
-import { floorBase, newFloor, wall, WALL_H } from './model.js';
+import { floorBase, floorAt, newFloor, wall, WALL_H } from './model.js';
 import { WallTool } from './tools/wallTool.js';
 import { OpeningTool } from './tools/openingTool.js';
 import { PaintTool } from './tools/paintTool.js';
@@ -31,7 +31,7 @@ export class Builder {
     const loop = now => { requestAnimationFrame(loop); if (!this.house) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; this.frame(dt); };
     requestAnimationFrame(loop);
   }
-  get fl() { return this.house.floors[this.floor]; }
+  get fl() { return floorAt(this.house, this.floor); }
   get lowNow() { return this.low && (this.step === 'furniture' || this.step === 'walls'); }
   get tool() { return this.walking ? null : this.tools[this.step]; }
 
@@ -76,6 +76,7 @@ export class Builder {
     const s = this.step, build = !this.walking;
     this.stage.setEnv(this.house.env);
     this.view.sync(this.house, { floor: this.floor, showAll: this.showAll || s === 'roof', walk: this.walking, low: this.lowNow });
+    this.stage.setDig(this.view.digOutlines(), build && this.floor < 0 && s !== 'roof' && !this.showAll);
     this.stage.grid.visible = build && s !== 'roof' && s !== 'paint'; this.stage.grid.position.y = floorBase(this.floor) + 0.05;
     this.stage.overlay.visible = build;
     this.stage.setLampSpots(this.view.lampSpots(this.house, this.walking || this.showAll ? 99 : this.floor));
@@ -93,7 +94,7 @@ export class Builder {
     }
     const ok = store.save(this.house, thumb); this.saved?.(ok);
   }
-  restore(h) { if (!h) return; this.house = h; this.sel = null; this.floor = Math.min(this.floor, h.floors.length - 1); this.stage.setTime(h.time ?? 13); this.refresh(); this.ui(); clearTimeout(this.saveT); this.saveT = setTimeout(() => this.saveNow(), 900); }
+  restore(h) { if (!h) return; this.house = h; this.sel = null; this.floor = Math.min(this.floor < 0 && !h.basement ? 0 : this.floor, h.floors.length - 1); this.stage.setTime(h.time ?? 13); this.refresh(); this.ui(); clearTimeout(this.saveT); this.saveT = setTimeout(() => this.saveNow(), 900); }
   undo() { this.restore(this.history.undo()); }
   redo() { this.restore(this.history.redo()); }
 
@@ -105,6 +106,14 @@ export class Builder {
     this.house.floors.push(f); this.floor = this.house.floors.length - 1; this.tool?.leave?.(); this.commit();
     this.say(below.items.some(i => i.type === 'stairs') ? 'New floor added, with the same walls as the one below.' : 'New floor added. Put Stairs on the floor below (Furniture → Lights & stairs) so you can walk up.');
   }
+  // Dig a basement under the house. Walls drawn down there dig the ground out in their shape.
+  digBasement() {
+    if (!this.house.basement) {
+      this.house.basement = newFloor(); this.floor = -1; this.step = 'walls'; this.tool?.leave?.(); this.commit();
+      this.say('⛏️ You\'re underground! Draw walls to dig out your basement. Then put Stairs down here so you can walk up.');
+    } else this.setFloor(-1);
+  }
+  fillBasement() { if (!this.house.basement) return; delete this.house.basement; this.floor = 0; this.tool?.leave?.(); this.commit(); this.say('The basement is filled back in.'); }
   removeFloor() { if (this.house.floors.length < 2) return; this.house.floors.pop(); this.floor = Math.min(this.floor, this.house.floors.length - 1); this.tool?.leave?.(); this.commit(); }
   setPlace(text) { const t = String(text || '').trim().slice(0, 60); if (!t || t === this.house.env) return; this.house.env = t; this.commit(); }
   setTime(h) { this.house.time = h; this.stage.setTime(h); clearTimeout(this.saveT); this.saveT = setTimeout(() => this.saveNow(), 900); }

@@ -1,6 +1,6 @@
 // Walk around inside your house: W A S D or arrow keys to move, mouse to look.
 import * as THREE from 'three';
-import { FLOOR_H, WALL_T, OPENINGS, PLOT } from './model.js';
+import { FLOOR_H, WALL_T, OPENINGS, PLOT, floorAt } from './model.js';
 import { wallLen, wallOpenings } from './geometry/walls.js';
 import { roomAt, pointInPoly } from './geometry/rooms.js';
 import { stairsOn } from './scene/houseView.js';
@@ -42,10 +42,10 @@ export class Walk {
     const st = this.app.stage; this.on = false; if (document.pointerLockElement) document.exitPointerLock();
     st.camera.fov = 50; st.camera.updateProjectionMatrix(); st.camera.position.copy(this.saved.p); st.controls.target.copy(this.saved.t); st.controls.enabled = true; st.lampRef = null;
   }
-  level() { return Math.max(0, Math.min(this.app.house.floors.length - 1, Math.floor((this.pos.y + 0.6) / FLOOR_H))); }
+  level() { return Math.max(this.app.house.basement ? -1 : 0, Math.min(this.app.house.floors.length - 1, Math.floor((this.pos.y + 0.6) / FLOOR_H))); }
   groundY(x, z, lv) {
-    const floors = this.app.house.floors;
-    for (const l of [lv, lv - 1]) for (const s of stairsOn(floors[l])) {
+    const h = this.app.house;
+    for (const l of [lv, lv - 1]) for (const s of stairsOn(floorAt(h, l))) {
       const dx = x - s.x, dz = z - s.z, c = Math.cos(s.rot || 0), sn = Math.sin(s.rot || 0), lx = dx * c - dz * sn, lz = dx * sn + dz * c;
       if (Math.abs(lx) <= 0.62 && Math.abs(lz) <= 1.9) return (l + Math.max(0, Math.min(1, (1.8 - lz) / 3.6))) * FLOOR_H;
     }
@@ -56,7 +56,7 @@ export class Walk {
     return lv * FLOOR_H;
   }
   blockers(lv) {
-    const fl = this.app.house.floors[lv], segs = [];
+    const fl = floorAt(this.app.house, lv), segs = [];
     for (const w of fl.walls) {
       const L = wallLen(w); if (L < 0.01) continue;
       const at = t => [w.a[0] + (w.b[0] - w.a[0]) * t / L, w.a[1] + (w.b[1] - w.a[1]) * t / L];
@@ -73,7 +73,7 @@ export class Walk {
     const f = (has('KeyW', 'ArrowUp') ? 1 : 0) - (has('KeyS', 'ArrowDown') ? 1 : 0), s = (has('KeyD') ? 1 : 0) - (has('KeyA') ? 1 : 0);
     const sp = (has('ShiftLeft', 'ShiftRight') ? 6 : 3.2) * dt, sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
     let x = this.pos.x + (-sy * f + cy * s) * sp, z = this.pos.z + (-cy * f - sy * s) * sp;
-    const lv = this.level(), fl = this.app.house.floors[lv];
+    const lv = this.level(), fl = floorAt(this.app.house, lv);
     for (let pass = 0; pass < 2; pass++) {
       for (const [a, b] of this.blockers(lv)) {
         const ex = b[0] - a[0], ez = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * ex + (z - a[1]) * ez) / (ex * ex + ez * ez)));

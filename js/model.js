@@ -2,7 +2,10 @@
 export const WALL_H = 2.7, WALL_T = 0.2, FLOOR_H = 3, SLAB = 0.3, GRID = 0.5, PLOT = 44;
 export const DEF_WALL = 'paint:#f3efe6', DEF_FLOOR = 'wood:#e2c08f';
 export const uid = () => Math.random().toString(36).slice(2, 9);
-export const floorBase = i => i * FLOOR_H;
+export const floorBase = i => i * FLOOR_H;          // level -1 is the basement, 3 m underground
+// Every level of a house, lowest first: [level, floor]. The basement (if dug) is level -1.
+export const levels = h => [...(h.basement ? [[-1, h.basement]] : []), ...h.floors.map((f, i) => [i, f])];
+export const floorAt = (h, i) => (i === -1 ? h.basement : h.floors[i]);
 
 export const OPENINGS = {
   door:          { name: 'Door',            w: 0.9, h: 2.1, sill: 0 },
